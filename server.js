@@ -15,9 +15,9 @@
 /**
  * Stripe keys [STEP4]
  */
-var CLIENT_ID               = 'ca_77Z9VWvyFG8ScDginsfXPgQ1fgXMrtWx';            // production ca_77Z9WqS97u4fal8OjNmMkmlYt9gaTnHs (development: ca_77Z9VWvyFG8ScDginsfXPgQ1fgXMrtWx) 
-var STRIPE_API_SECRET_KEY   = 'sk_test_PjPAEVD1LXfUuA6XylJPnQX4';               // production sk_live_0CiEBOUQbwV6vGZszWky4jGC (development: sk_test_PjPAEVD1LXfUuA6XylJPnQX4)
-var FIREBASE_SECRET_KEY     = 'tXJbAP6HUl7GEVoYcgJmpdaZfmtI58ak2VlWdYBb'        // production
+var CLIENT_ID               = 'ca_77Z9VWvyFG8ScDginsfXPgQ1fgXMrtWx';            // sa.ibisevic  production ca_77Z9WqS97u4fal8OjNmMkmlYt9gaTnHs (development: ca_77Z9VWvyFG8ScDginsfXPgQ1fgXMrtWx) 
+var STRIPE_API_SECRET_KEY   = 'sk_test_PjPAEVD1LXfUuA6XylJPnQX4';               // sa.ibisevic  production sk_live_0CiEBOUQbwV6vGZszWky4jGC (development: sk_test_PjPAEVD1LXfUuA6XylJPnQX4)
+var FIREBASE_SECRET_KEY     = 'Kv5Fvkyo988QNIksqqpv53Y0q6JiIYbUpGj041XR'        // boonera fb   production 
 
 var TOKEN_URI               = 'https://connect.stripe.com/oauth/token';
 var AUTHORIZE_URI           = 'https://connect.stripe.com/oauth/authorize';
@@ -111,7 +111,6 @@ router.post('/charge/nodestination', function(req, res) {
     console.log("charge/nodestination: source:", req.body.stripeSource)
     console.log("charge/nodestination: description", req.body.stripeDescription)
 
-    
     var charge = stripe.charges.create({
         amount:           req.body.stripeAmount,                // amount in cents, again
         currency:         req.body.stripeCurrency,
@@ -132,7 +131,7 @@ router.post('/charge/nodestination', function(req, res) {
               //res.send("Something went wrong... Try again on Noodl.io: " + error);
             } else {
               console.log("fb sync charge error: success: ")
-              //res.send("Success! Your account is now setup to use Stripe Connect. You may close this window. <br><br> You can now refresh your settings in your Noodl.io account");
+              //res.send("Success! Your account is now setup to use Stripe Connect. You may close this window. <br><br> You can now refresh your settings in your app");
             }
           };
           
@@ -156,8 +155,6 @@ router.post('/charge/nodestination', function(req, res) {
 
 router.post('/charge', function(req, res) {
     
-
-    
     console.log("--------- charge")
     console.log("charge: buyerId:", req.body.stripeBuyerId)
     console.log("charge: productId:", req.body.stripeProductId)
@@ -166,8 +163,8 @@ router.post('/charge', function(req, res) {
     console.log("charge: currency:", req.body.stripeCurrency)
     console.log("charge: source:", req.body.stripeSource)
     console.log("charge: description", req.body.stripeDescription)
-    console.log("charge: destination", req.body.stripeDestinationAccountId)
-    console.log("charge: noodlio fee", req.body.noodlioApplicationFee)
+    console.log("charge: destination", req.body.stripeConnectedAccountId)
+    console.log("charge: noodlio fee", req.body.applicationFee)
     
     var charge = stripe.charges.create(
       {
@@ -175,9 +172,9 @@ router.post('/charge', function(req, res) {
         currency:         req.body.stripeCurrency,
         source:           req.body.stripeSource,
         description:      req.body.stripeDescription,
-        application_fee:  req.body.noodlioApplicationFee
+        application_fee:  req.body.applicationFee
       },
-      {stripe_account: req.body.stripeDestinationAccountId},
+      {stripe_account: req.body.stripeConnectedAccountId},
       function(err, charge) {
         // check for `err`
         // do something with `charge`
@@ -199,10 +196,8 @@ router.post('/charge', function(req, res) {
           var onComplete = function(error) {
           if (error) {
               console.log("fb sync charge error: error: " + error)
-              //res.send("Something went wrong... Try again on Noodl.io: " + error);
             } else {
               console.log("fb sync charge error: success: ")
-              //res.send("Success! Your account is now setup to use Stripe Connect. You may close this window. <br><br> You can now refresh your settings in your Noodl.io account");
             }
           };
           
@@ -225,6 +220,126 @@ router.post('/charge', function(req, res) {
     );
 });
 
+
+router.post('/charge/customer', function(req, res) {
+    
+    console.log("--------- charge/customer")
+    console.log("charge/customer: buyerId:", req.body.stripeBuyerId)
+    console.log("charge/customer: productId:", req.body.stripeProductId)
+    
+    console.log("charge/customer: amount:", req.body.stripeAmount)
+    console.log("charge/customer: currency:", req.body.stripeCurrency)
+    console.log("charge/customer: source:", req.body.stripeSource)
+    console.log("charge/customer: customerId:", req.body.stripeCustomerId)
+    console.log("charge/customer: description", req.body.stripeDescription)
+    
+    var charge = stripe.charges.create({
+        amount:           req.body.stripeAmount,                // amount in cents, again
+        currency:         req.body.stripeCurrency,
+        description:      req.body.stripeDescription,
+        customer:         req.body.stripeCustomerId,
+    }, function(err, charge) {
+        // check for `err`
+        // do something with `charge`
+        console.log("charge callback: error:", err)
+        console.log("charge callback: charge:", charge)
+        
+        /**
+        if (err && err.type === 'StripeCardError') {
+            res.json(err);   
+        } else {
+            res.json(charge);   
+        }
+        **/
+        
+        // record error is something happened
+        // Sync data
+        if(err) {
+          var ref = new Firebase(FBURL);
+          var onComplete = function(error) {
+          if (error) {
+              console.log("fb sync charge error: error: " + error)
+            } else {
+              console.log("fb sync charge error: success: ")
+            }
+          };
+          
+          // <--
+          ref.child("feedback").child("stripe_charge_error").child(req.body.stripeBuyerId).child(req.body.stripeProductId).push({
+              type: err.type,
+              message: err.message,
+              statusCode: err.statusCode,
+              date: Firebase.ServerValue.TIMESTAMP
+            }, 
+            onComplete);
+          res.json(err);
+          
+        } else {
+          // <--
+          res.json(charge);   
+        }
+
+      }
+    );
+});
+
+
+/** 
+ * =============================================================================
+ * Stripe Customers
+ * =============================================================================
+ */
+router.post('/savecustomer', function(req, res) {
+    
+    console.log("--------- save-customer")
+    console.log("save-customer: buyerId:", req.body.stripeToken)
+    
+    var tokenID = req.body.stripeToken;
+
+    // Create a Customer
+    // https://stripe.com/docs/connect/shared-customers
+    stripe.customers.create({
+      source: tokenID,
+      description: "Customer"
+    }, function(err, customer) {
+      if(err){
+        console.log(err)
+        res.json(err);
+      } else {
+        console.log(customer)
+        res.json(customer);
+      }
+    });
+    
+});
+
+router.post('/createtoken', function(req, res) {
+    
+    console.log("--------- create-token")
+    console.log("create-token: customerId:",  req.body.stripeCustomerId)
+    console.log("create-token: accountId:",   req.body.stripeConnectedAccountId)
+    
+    var CUSTOMER_ID                     = req.body.stripeCustomerId;
+    var CONNECTED_STRIPE_ACCOUNT_ID     = req.body.stripeConnectedAccountId;
+
+    // Create a Token from the existing customer on the platform's account
+    // https://stripe.com/docs/connect/shared-customers
+    stripe.tokens.create(
+      { customer: CUSTOMER_ID},
+      { stripe_account: CONNECTED_STRIPE_ACCOUNT_ID }, // id of the connected account
+      function(err, token) {
+        // callback
+        if(err){
+          console.log(err)
+          res.json(err);
+        } else {
+          console.log('create-token', token)
+          res.json(token);
+        }
+      }
+    );
+    
+});
 
 
 
@@ -252,8 +367,8 @@ function genuuid() {
 router.get('/authorize', function(req, res) {
   
   console.log("--------- authorize")
-  console.log("authorize: userId: ", req.query.userId)
-  console.log("authorize: token: ", req.query.token)
+  console.log("authorize: userId: ",  req.query.userId)
+  console.log("authorize: token: ",   req.query.token)
   
   session["cookie"] = {
     userId: req.query.userId,
@@ -320,15 +435,15 @@ router.get('/oauth/callback', function(req, res) {
       var onComplete = function(error) {
       if (error) {
           console.log("fb sync: error: " + error)
-          res.send("Something went wrong... Try again on Noodl.io: " + error);
+          res.send("Something went wrong... Try again " + error);
         } else {
           console.log("fb sync: success: ")
-          res.send("Success! Your account is now setup to use Stripe Connect. You may close this window. <br><br> You can now refresh your settings in your Noodl.io account");
+          res.send("Success! Your account is now setup to use Stripe Connect. You may close this window. <br><br> You can now refresh your settings in your app");
         }
       };
       
       ref.child("stripe_connect_auth").child(userId).set(SCData, onComplete);
-    }
+    };
     
     
   });
